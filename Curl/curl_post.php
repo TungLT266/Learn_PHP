@@ -1,6 +1,6 @@
 <?php
 
-function getContent($url)
+function curl($url)
 {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -9,7 +9,7 @@ function getContent($url)
     return $output;
 }
 
-function getPost($url, $param)
+function curlPost($url, $param)
 {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, true);
@@ -21,25 +21,27 @@ function getPost($url, $param)
 }
 
 $url = 'https://www.thegioididong.com/dtdd/oppo-f7-128gb'; // link 1 sản phẩm của thế giới di động
-$content = getContent($url);
+$content = curl($url);
 
-if(preg_match('~var GL_PRODUCTID = (\d+)~', $content, $matches)&&preg_match_all('~onclick="gotoGallery\(([17]),(\d+)\)"~', $content, $matches1)){
-    $imageList = array();
-    for($i=0; $i<sizeof($matches1[0]); $i++){
-        $param = 'productID='.$matches[1].'&imageType='.$matches1[1][$i].'&colorID='.$matches1[2][$i];
-        $content = getPost('https://www.thegioididong.com/aj/ProductV4/GallerySlideFT/', $param);
-        if(preg_match_all('~data-img="(.+?)"~', $content, $matches2)){
-            if((int)$matches1[1][$i]==1){
-                foreach ($matches2[1] as $item){
-                    $imageList[] = 'https:'.$item;
+if(preg_match('~var GL_PRODUCTID = (\d+)~', $content, $productIDMatch)){
+    if(preg_match_all('~onclick="gotoGallery\(([17]),(\d+)\)"~', $content, $imageTypeAndColorIDMatch)) {
+        $imageList = array();
+        for ($i = 0; $i < sizeof($imageTypeAndColorIDMatch[0]); $i++) {
+            $param = 'productID=' . $productIDMatch[1] . '&imageType=' . $imageTypeAndColorIDMatch[1][$i] . '&colorID=' . $imageTypeAndColorIDMatch[2][$i];
+            $content = curlPost('https://www.thegioididong.com/aj/ProductV4/GallerySlideFT/', $param);
+            if (preg_match_all('~data-img="(.+?)"~', $content, $imageMatch)) {
+                if ((int)$imageTypeAndColorIDMatch[1][$i] == 1) {
+                    foreach ($imageMatch[1] as $item) {
+                        $imageList[] = 'https:' . $item;
+                    }
+                } elseif ((int)$imageTypeAndColorIDMatch[1][$i] == 7) {
+                    foreach ($imageMatch[1] as $item) {
+                        $imageList[] = $item;
+                    }
                 }
-            } elseif ((int)$matches1[1][$i]==7){
-                foreach ($matches2[1] as $item){
-                    $imageList[] = $item;
-                }
+
             }
-
         }
+        var_dump($imageList);
     }
-    var_dump($imageList);
 }
